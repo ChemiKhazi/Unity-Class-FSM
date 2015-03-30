@@ -4,49 +4,18 @@ using SubjectNerd.StateMachine;
 
 namespace MyNamespace.SampleFSM
 {
-	// This is an interface that defines what events are fired by state machine
-	public interface ISampleEvents
-	{
-		void Update();
-		void MouseDown(Vector3 screenPosition);
-	}
-
-	// Note: implementing ISampleEvents defined earlier and IFsmState from the state machine
-	// This class is not public so it can't be accessed outside of this namespace
-	class BaseSampleState : IFsmState, ISampleEvents
-	{
-		// Lightly coupling the states to the state machine
-		// to allow states to call ChangeState()
-		// Since this is static, it is shared between all instances of the state class
-		protected static SampleStateMachine FSM;
-
-		// This function is called by the state machine and is used
-		// to setup the coupling of the states and the state machine
-		// In this instance, the state machine is just passing the FSM to the states
-		// See the State Machine implementation below for details
-		public void Setup(params object[] args)
-		{
-			FSM = args[0] as SampleStateMachine;
-		}
-
-		// The following functions are implementations of the interfaces
-		// and are defined as virtual while doing nothing.
-		// subclasses simply override them and implement the functionality
-
-		public virtual IEnumerator Enter() { yield break; }
-		public virtual IEnumerator Exit() { yield break; }
-
-		public virtual void MouseDown(Vector3 screenPosition) { }
-		public virtual void Update() { }
-	}
+	/* =====================================================================
+	 * 3, 4. Implementing the StateMachine, Initializing the StateMachine
+	 * =====================================================================
+	 */
 
 	// This is the actual state machine, which is a MonoBehaviour
 	public class SampleStateMachine : StateMachine
 	{
 		// This function works with the base class to couple state classes to the
 		// machine. In this example, the state machine is passed as the first
-		// argument to setup. The state base class expects this in its Setup()
-		// function. You can pass any other data to state classes here
+		// argument to setup. The BaseSampleState class expects this in its Setup()
+		// function. In your own implementations, you can pass other arguments here
 		protected override void SetupState(IFsmState state)
 		{
 			state.Setup(this);
@@ -68,7 +37,8 @@ namespace MyNamespace.SampleFSM
 		void Start()
 		{
 			// State classes can be defined anywhere, as long as they're accessible by the StateMachine
-			// The classes being used to initalize the machine are in TestStates.cs
+			// The first two classes used to initalize the machine are in TestStates.cs,
+			// the last is in this same file
 
 			// Initialize the states of this machine
 			Initialize(typeof(StartTestState),
@@ -94,6 +64,11 @@ namespace MyNamespace.SampleFSM
 		}
 	} //  End SampleStateMachine
 
+
+	/* ======================================================================
+	 * A sample state class, check TestStates.cs for the other state classes
+	 * ======================================================================
+	 */
 	class StateInMachineClassFile : BaseSampleState
 	{
 		public override IEnumerator Enter()
