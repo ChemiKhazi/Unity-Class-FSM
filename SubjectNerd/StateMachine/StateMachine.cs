@@ -23,6 +23,9 @@ namespace SubjectNerd.StateMachine
 
 		public IFsmState Current_State { get { return _currentState; } }
 
+		/// <summary>
+		/// Is the StateMachine transitioning between states?
+		/// </summary>
 		public bool IsTransitioning
 		{
 			get
@@ -31,6 +34,9 @@ namespace SubjectNerd.StateMachine
 			}
 		}
 
+		/// <summary>
+		/// Whether there is a current state that can be run
+		/// </summary>
 		public bool HasState
 		{
 			get { return (_currentState != null && !IsTransitioning); }
@@ -62,8 +68,19 @@ namespace SubjectNerd.StateMachine
 			StartCoroutine(StateChangeRoutine());
 		}
 
-		public void ChangeState(Type state)
+		/// <summary>
+		/// Switch the state of the StateMachine
+		/// </summary>
+		/// <param name="state">The typeof() of the state being switched to</param>
+		/// <returns>Success of the state change. Will return false if StateMachine is in the middle of a transition</returns>
+		public bool ChangeState(Type state)
 		{
+			if (_stateLookup.ContainsKey(state) == false)
+				throw new ArgumentException("Cannot change to state. Make sure it was added to StateMachine.Initialize", state.Name);
+
+			if (IsTransitioning)
+				return false;
+
 			// When coming to change state from the started phase, go immediately to the enter phase
 			_statePhase = (_statePhase == StatePhase.Started) ? StatePhase.Enter : StatePhase.Exit;
 			_nextState = _stateLookup[state];
@@ -72,10 +89,12 @@ namespace SubjectNerd.StateMachine
 				exitIterator = _currentState.Exit();
 			}
 			enterIterator = _nextState.Enter();
+
+			return true;
 		}
 
-		protected abstract void SetupState(IFsmState state);
 		protected abstract void InternalStateChange();
+		protected abstract void SetupState(IFsmState state);
 
 		private IEnumerator StateChangeRoutine()
 		{
@@ -86,9 +105,8 @@ namespace SubjectNerd.StateMachine
 
 			while (isActiveAndEnabled)
 			{
-				if (_statePhase == StatePhase.Exit || _statePhase == StatePhase.Enter)
+				if (IsTransitioning)
 				{
-					//Debug.LogFormat("{0} transition", _statePhase);
 					bool isExit = _statePhase == StatePhase.Exit;
 
 					// Choose which iterator to use
@@ -98,17 +116,21 @@ namespace SubjectNerd.StateMachine
 					{
 						yield return iter.Current;
 					}
-					//Debug.Log("End transition");
-					// Enter/exit coroutined complete, move to next state of transition
+
+					// Exit coroutine complete, move to enter phase
 					if (isExit)
 					{
 						_statePhase = StatePhase.Enter;
 					}
+					// Enter coroutine complete, move to update phase
+					// and clean up
 					else
 					{
 						_statePhase = StatePhase.Update;
 						_currentState = _nextState;
 						_nextState = null;
+						exitIterator = null;
+						enterIterator = null;
 						InternalStateChange();
 					}
 				}
