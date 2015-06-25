@@ -21,7 +21,7 @@ namespace SubjectNerd.StateMachine
 		private Dictionary<Type, IFsmState> _stateLookup;
 		private IEnumerator exitIterator, enterIterator;
 
-		public IFsmState Current_State { get { return _currentState; } }
+		public IFsmState CurrentState { get { return _currentState; } }
 
 		/// <summary>
 		/// Is the StateMachine transitioning between states?
@@ -37,7 +37,7 @@ namespace SubjectNerd.StateMachine
 		/// <summary>
 		/// Whether there is a current state that can be run
 		/// </summary>
-		public bool HasState
+		public bool CanRun
 		{
 			get { return (_currentState != null && !IsTransitioning); }
 		}
@@ -93,6 +93,19 @@ namespace SubjectNerd.StateMachine
 			return true;
 		}
 
+		/// <summary>
+		/// Returns the instance of the the type being used by the state machine
+		/// </summary>
+		/// <param name="stateType"></param>
+		/// <returns></returns>
+		public IFsmState GetState(Type stateType)
+		{
+			if (_stateLookup.ContainsKey(stateType) == false)
+				return null;
+
+			return _stateLookup[stateType];
+		}
+
 		protected abstract void InternalStateChange();
 		protected abstract void SetupState(IFsmState state);
 
@@ -121,21 +134,35 @@ namespace SubjectNerd.StateMachine
 					if (isExit)
 					{
 						_statePhase = StatePhase.Enter;
+
+						// Iterate through the enter IEnumerator
+						// So it's possible to change states in one frame
+						iter = enterIterator;
+						while (iter.MoveNext())
+						{
+							yield return iter.Current;
+						}
+						StateEnterComplete();
 					}
 					// Enter coroutine complete, move to update phase
 					// and clean up
 					else
 					{
-						_statePhase = StatePhase.Update;
-						_currentState = _nextState;
-						_nextState = null;
-						exitIterator = null;
-						enterIterator = null;
-						InternalStateChange();
+						StateEnterComplete();
 					}
 				}
 				yield return null;
 			}
+		}
+
+		private void StateEnterComplete()
+		{
+			_statePhase = StatePhase.Update;
+			_currentState = _nextState;
+			_nextState = null;
+			exitIterator = null;
+			enterIterator = null;
+			InternalStateChange();
 		}
 	}
 }
