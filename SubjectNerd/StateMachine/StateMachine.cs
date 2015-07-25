@@ -42,7 +42,15 @@ namespace SubjectNerd.StateMachine
 			get { return (_currentState != null && !IsTransitioning); }
 		}
 
-		public void Initialize(params Type[] states)
+        /// <summary>
+		/// If there is actually a current state
+		/// </summary>
+		public bool HasState
+        {
+            get { return _currentState != null; }
+        }
+
+        public void Initialize(params Type[] states)
 		{
 			if (states.Length < 1)
 				throw new ArgumentNullException("states", "Initialize must be called with states");

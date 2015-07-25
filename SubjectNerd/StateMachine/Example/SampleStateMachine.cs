@@ -30,7 +30,7 @@ namespace MyNamespace.SampleFSM
 		// the Current_State (which is an IFsmState) to your event interface
 		protected override void InternalStateChange()
 		{
-			_current = Current_State as ISampleEvents;
+			_current = Current as ISampleEvents;
 		}
 
 		// Standard MonoBehaviour Start()
